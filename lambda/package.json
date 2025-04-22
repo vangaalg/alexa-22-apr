@@ -1,0 +1,26 @@
+{
+  "name": "auto-industry-news-skill",
+  "version": "1.0.0",
+  "description": "Alexa skill for automotive industry news",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "local-test": "node local-test.js",
+    "debug": "node --inspect local-test.js",
+    "deploy-package": "node create-deployment-zip.js",
+    "start-mock-server": "npx ask-sdk-local-debug"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ask-sdk-core": "^2.12.1",
+    "ask-sdk-model": "^1.38.1",
+    "axios": "^0.27.2",
+    "openai": "^3.2.1"
+  },
+  "devDependencies": {
+    "archiver": "^5.3.1",
+    "ask-sdk-local-debug": "^1.1.0",
+    "dotenv": "^16.0.3"
+  }
+} 

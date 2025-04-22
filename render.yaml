@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: auto-news-admin
+    env: node
+    repo: https://github.com/vangaalg/alexa-22-apr.git
+    branch: main
+    buildCommand: bash ./build.sh
+    startCommand: bash ./start.sh
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 16.x
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false 
