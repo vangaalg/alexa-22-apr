@@ -2,18 +2,12 @@ services:
   - type: web
     name: auto-news-admin
     env: node
-<<<<<<< HEAD
     repo: https://github.com/vangaalg/alexa-22-apr.git
     branch: main
     buildCommand: bash ./build.sh
     startCommand: bash ./start.sh
     healthCheckPath: /
     autoDeploy: true
-=======
-    buildCommand: cd ALEXA && bash ./build.sh
-    startCommand: cd ALEXA && bash ./start.sh
-    healthCheckPath: /
->>>>>>> be64f12a554e4331e109a2d75cd1411ab379e8f5
     envVars:
       - key: NODE_VERSION
         value: 16.x
@@ -22,8 +16,4 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: OPENAI_API_KEY
-<<<<<<< HEAD
         sync: false 
-=======
-        sync: false
->>>>>>> be64f12a554e4331e109a2d75cd1411ab379e8f5

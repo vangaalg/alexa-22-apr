@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Deployment package
+*.zip
+
+# Debug logs
+npm-debug.log*
+
+# IDE files
+.idea/
+.vscode/
+
+# Operating System files
+.DS_Store
+Thumbs.db 
