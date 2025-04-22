@@ -1,0 +1,100 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "auto news",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "GetNewsIntent",
+          "slots": [
+            {
+              "name": "country",
+              "type": "AMAZON.Country"
+            },
+            {
+              "name": "catchAll",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "get automotive news from {country}",
+            "tell me automotive news from {country}",
+            "what's happening in {country} auto industry",
+            "give me the latest car news from {country}",
+            "tell me about automotive industry in {country}",
+            "what's new in {country} automotive sector",
+            "give me auto industry updates from {country}",
+            "tell me about cars in {country}",
+            "{country} automotive news",
+            "I want automotive news from {catchAll}",
+            "tell me about auto industry in {catchAll}",
+            "get car information about {catchAll}",
+            "find automotive news about {catchAll}"
+          ]
+        },
+        {
+          "name": "GetLatestNewsIntent",
+          "slots": [],
+          "samples": [
+            "get the latest automotive news",
+            "tell me the top automotive news",
+            "what's happening in the auto industry",
+            "give me the latest automotive updates",
+            "tell me today's car news",
+            "what's the news on auto industry",
+            "what's the latest in automotive",
+            "tell me about car manufacturers",
+            "give me updates on electric vehicles",
+            "what's happening with automotive companies"
+          ]
+        }
+      ],
+      "types": []
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "GetNewsIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "country",
+              "type": "AMAZON.Country",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "catchAll",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    }
+  }
+} 
