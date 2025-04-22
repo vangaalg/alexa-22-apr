@@ -1,0 +1,23 @@
+{
+  "name": "auto-news",
+  "version": "1.0.0",
+  "description": "Automotive News Alexa Skill",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "start": "cd admin-ui && npm start",
+    "build": "cd admin-ui && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vangaalg/alexa-22-apr.git"
+  },
+  "keywords": [
+    "alexa",
+    "automotive",
+    "news"
+  ],
+  "author": "",
+  "license": "ISC"
+}
