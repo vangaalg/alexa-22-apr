@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: auto-news-admin
+    env: node
+    buildCommand: cd ALEXA && bash ./build.sh
+    startCommand: cd ALEXA && bash ./start.sh
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 16.x
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
