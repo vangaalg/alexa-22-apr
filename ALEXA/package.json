@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Automotive News Alexa Skill",
   "engines": {
-    "node": ">=16.0.0"
+    "node": "16.x"
   },
   "scripts": {
-    "start": "cd admin-ui && npm start",
-    "build": "cd admin-ui && npm install"
+    "start": "bash ./start.sh",
+    "build": "bash ./build.sh"
   },
   "repository": {
     "type": "git",

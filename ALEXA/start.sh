@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This is the build script for Render deployment
+# This is the start script for Render deployment
 
 # Exit on error
 set -o errexit
@@ -21,11 +21,7 @@ else
 fi
 
 # Print current directory after navigation
-echo "Changed to directory: $(pwd)"
-ls -la
+echo "Starting app from directory: $(pwd)"
 
-# Install dependencies
-echo "Installing dependencies..."
-npm install
-
-echo "Build completed successfully!" 
+# Start the application
+node server.js 
