@@ -3,94 +3,58 @@ const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
 
-// Create output directory if it doesn't exist
-const parentDir = path.join(__dirname, '..');
-if (!fs.existsSync(parentDir)) {
-  fs.mkdirSync(parentDir);
-}
+console.log('Creating Lambda deployment package...');
 
-// Create a file to stream archive data to
-const output = fs.createWriteStream(path.join(parentDir, 'deployment.zip'));
+// Create output stream
+const output = fs.createWriteStream(path.join(__dirname, 'deployment.zip'));
 const archive = archiver('zip', {
   zlib: { level: 9 } // Highest compression level
 });
 
 // Listen for all archive data to be written
 output.on('close', function() {
-  console.log(`Deployment package created: ${archive.pointer()} total bytes`);
-  console.log('Deployment ZIP file created at ../deployment.zip');
+  console.log('✅ Deployment package created successfully!');
+  console.log(`📦 Total size: ${(archive.pointer() / 1024 / 1024).toFixed(2)} MB`);
+  console.log('📂 Location: ' + path.join(__dirname, 'deployment.zip'));
 });
 
-// Handle warnings and errors
-archive.on('warning', function(err) {
-  if (err.code === 'ENOENT') {
-    console.warn('Warning:', err);
-  } else {
-    throw err;
-  }
-});
-
+// Listen for errors
 archive.on('error', function(err) {
-  throw err;
+  console.error('❌ Error creating deployment package:', err);
+  process.exit(1);
 });
 
-// Pipe archive data to the file
+// Pipe archive data to the output file
 archive.pipe(output);
 
-// Exclude patterns
-const excludePatterns = [
-  '.git',
-  '.env',
-  '.env.example',
-  'node_modules/ask-sdk-local-debug',
-  'create-deployment-zip.js',
-  'local-test.js'
+// Add all required files
+console.log('Adding Lambda function code and dependencies...');
+
+// Add individual files at root level
+const filesToInclude = [
+  'index.js',
+  'package.json',
+  'package-lock.json'
 ];
 
-// Function to check if a path should be excluded
-const shouldExclude = (itemPath) => {
-  return excludePatterns.some(pattern => 
-    itemPath.includes(pattern) || 
-    itemPath.startsWith(pattern) || 
-    path.basename(itemPath) === pattern
-  );
-};
-
-// Add files and directories
-const addDirectory = (dirPath, archivePath = '') => {
-  const items = fs.readdirSync(dirPath);
-  
-  for (const item of items) {
-    const itemPath = path.join(dirPath, item);
-    const archiveItemPath = path.join(archivePath, item);
-    
-    // Skip excluded patterns
-    if (shouldExclude(itemPath)) {
-      console.log(`Excluding: ${itemPath}`);
-      continue;
-    }
-    
-    const stat = fs.statSync(itemPath);
-    
-    if (stat.isDirectory()) {
-      // For node_modules, add the entire directory at once (significant speed improvement)
-      if (item === 'node_modules') {
-        console.log('Adding node_modules directory...');
-        archive.directory(itemPath, archiveItemPath);
-      } else {
-        // Regular directory - recurse into it
-        addDirectory(itemPath, archiveItemPath);
-      }
-    } else {
-      // Add file
-      console.log(`Adding file: ${archiveItemPath}`);
-      archive.file(itemPath, { name: archiveItemPath });
-    }
+filesToInclude.forEach(file => {
+  const filePath = path.join(__dirname, file);
+  if (fs.existsSync(filePath)) {
+    archive.file(filePath, { name: file });
+    console.log(`Added ${file}`);
+  } else {
+    console.log(`Warning: ${file} not found, skipping`);
   }
-};
+});
 
-console.log('Creating deployment package...');
-addDirectory(__dirname);
+// Add node_modules directory
+const nodeModulesPath = path.join(__dirname, 'node_modules');
+if (fs.existsSync(nodeModulesPath)) {
+  archive.directory(nodeModulesPath, 'node_modules');
+  console.log('Added node_modules directory');
+} else {
+  console.error('⚠️ Warning: node_modules directory not found! Run npm install first.');
+}
 
 // Finalize the archive
 archive.finalize(); 

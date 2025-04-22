@@ -66,6 +66,35 @@
             "give me updates on electric vehicles",
             "what's happening with automotive companies"
           ]
+        },
+        {
+          "name": "GetNewsDetailIntent",
+          "slots": [
+            {
+              "name": "headlineNumber",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "catchAll",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "tell me more about headline {headlineNumber}",
+            "get details for headline {headlineNumber}",
+            "more information about headline {headlineNumber}",
+            "tell me about headline number {headlineNumber}",
+            "give me more details on headline {headlineNumber}",
+            "what's headline {headlineNumber} about",
+            "can you elaborate on headline {headlineNumber}",
+            "tell me more about {headlineNumber}",
+            "details for {headlineNumber}",
+            "more about {headlineNumber}",
+            "headline {headlineNumber}",
+            "number {headlineNumber}",
+            "tell me more about {catchAll}",
+            "details about {catchAll}"
+          ]
         }
       ],
       "types": []
@@ -80,6 +109,27 @@
             {
               "name": "country",
               "type": "AMAZON.Country",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            },
+            {
+              "name": "catchAll",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": false,
+              "elicitationRequired": false,
+              "prompts": {}
+            }
+          ]
+        },
+        {
+          "name": "GetNewsDetailIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "headlineNumber",
+              "type": "AMAZON.NUMBER",
               "confirmationRequired": false,
               "elicitationRequired": false,
               "prompts": {}

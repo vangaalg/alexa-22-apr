@@ -16,6 +16,8 @@ const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://localhost:3000/api';
 const SESSION_KEYS = {
   STATE: 'state',
   COUNTRY: 'country',
+  NEWS_HEADLINES: 'newsHeadlines', 
+  SELECTED_NEWS_INDEX: 'selectedNewsIndex',
   CONVERSATION_HISTORY: 'conversationHistory'
 };
 
@@ -24,7 +26,9 @@ const STATES = {
   STARTED: 'STARTED',
   ASKING_COUNTRY: 'ASKING_COUNTRY',
   FETCHING_NEWS: 'FETCHING_NEWS',
-  DELIVERING_NEWS: 'DELIVERING_NEWS'
+  DELIVERING_HEADLINES: 'DELIVERING_HEADLINES',
+  ASKING_FOR_DETAIL: 'ASKING_FOR_DETAIL',
+  DELIVERING_DETAIL: 'DELIVERING_DETAIL'
 };
 
 // Function to use OpenAI to ask for country and process response
@@ -57,22 +61,50 @@ const askOpenAI = async (prompt, conversationHistory = []) => {
   }
 };
 
-// Function to fetch news from the admin panel API
-const fetchNewsFromAdmin = async (country) => {
+// Function to fetch headlines from the admin panel API
+const fetchHeadlinesFromAdmin = async (country) => {
   try {
-    const response = await axios.get(`${ADMIN_API_URL}/news`, {
+    console.log(`Attempting to fetch headlines from admin API for country: ${country}`);
+    console.log(`Using API URL: ${ADMIN_API_URL}/headlines`);
+    
+    const response = await axios.get(`${ADMIN_API_URL}/headlines`, {
       params: {
         country: country,
-        limit: 5
-      }
+        limit: 10
+      },
+      timeout: 5000 // 5 second timeout
     });
     
     if (response.data.success && response.data.data.length > 0) {
+      console.log(`Successfully retrieved ${response.data.data.length} headlines from admin API`);
+      return response.data.data;
+    } else {
+      console.log(`No headlines found in admin API for country: ${country}`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching headlines from admin API:', error.message);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      console.error('Connection to admin API failed - check ADMIN_API_URL and ensure the admin panel is running');
+    }
+    if (error.response) {
+      console.error('Admin API response status:', error.response.status);
+    }
+    return null;
+  }
+};
+
+// Function to fetch specific news detail from admin panel API
+const fetchNewsDetailFromAdmin = async (newsId) => {
+  try {
+    const response = await axios.get(`${ADMIN_API_URL}/news/${newsId}`);
+    
+    if (response.data.success && response.data.data) {
       return response.data.data;
     }
     return null;
   } catch (error) {
-    console.error('Error fetching news from admin API:', error);
+    console.error('Error fetching news detail from admin API:', error);
     return null;
   }
 };
@@ -106,6 +138,23 @@ const searchNewsWithOpenAI = async (country) => {
     console.error('Error searching news with OpenAI:', error);
     return null;
   }
+};
+
+// Format headlines from admin panel into speech text
+const formatHeadlinesForSpeech = (headlines, country) => {
+  if (!headlines || headlines.length === 0) {
+    return null;
+  }
+  
+  let speechText = `Here are the top ${headlines.length} automotive headlines from ${country}. `;
+  
+  headlines.forEach((item, index) => {
+    speechText += `Headline ${index + 1}: ${item.headline || item.title}. `;
+  });
+  
+  speechText += "You can ask for more details about any headline by saying 'tell me more about headline 3' or similar.";
+  
+  return speechText;
 };
 
 // Format news articles from admin panel into speech text
@@ -170,7 +219,82 @@ const LaunchRequestHandler = {
   }
 };
 
-// This handles both the original intent and unhandled utterances in conversation
+// This handles news detail requests
+const GetNewsDetailIntentHandler = {
+  canHandle(handlerInput) {
+    const sessionAttributes = getSessionAttributes(handlerInput);
+    const state = sessionAttributes[SESSION_KEYS.STATE];
+    
+    return (
+      (Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+       Alexa.getIntentName(handlerInput.requestEnvelope) === 'GetNewsDetailIntent') ||
+      (state === STATES.DELIVERING_HEADLINES || 
+       state === STATES.ASKING_FOR_DETAIL)
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const sessionAttributes = getSessionAttributes(handlerInput);
+      const headlines = sessionAttributes[SESSION_KEYS.NEWS_HEADLINES];
+      
+      let headlineNumber = 0;
+      
+      // Try to extract headline number from intent slot
+      if (Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest') {
+        headlineNumber = Alexa.getSlotValue(handlerInput.requestEnvelope, 'headlineNumber');
+        
+        if (!headlineNumber) {
+          // Try to extract number using OpenAI
+          const userInput = handlerInput.requestEnvelope.request?.intent?.slots?.['catchAll']?.value || '';
+          
+          if (userInput) {
+            const aiResponse = await askOpenAI(
+              `Extract the headline number from this request: "${userInput}". Just respond with the number only, or 0 if no number is found.`,
+              sessionAttributes[SESSION_KEYS.CONVERSATION_HISTORY] || []
+            );
+            
+            const extractedNumber = parseInt(aiResponse.content.match(/\d+/)?.[0] || '0');
+            headlineNumber = extractedNumber;
+          }
+        }
+      }
+      
+      // Convert to 0-based index
+      const headlineIndex = parseInt(headlineNumber) - 1;
+      
+      if (isNaN(headlineIndex) || headlineIndex < 0 || !headlines || headlineIndex >= headlines.length) {
+        return handlerInput.responseBuilder
+          .speak("I didn't understand which headline you wanted more details about. Please specify a headline number between 1 and " + headlines.length)
+          .reprompt("Which headline would you like to hear more about?")
+          .withSimpleCard('Auto News Headlines', "Please specify a headline number")
+          .getResponse();
+      }
+      
+      const selectedHeadline = headlines[headlineIndex];
+      
+      // Set state to delivering detail
+      sessionAttributes[SESSION_KEYS.STATE] = STATES.DELIVERING_DETAIL;
+      sessionAttributes[SESSION_KEYS.SELECTED_NEWS_INDEX] = headlineIndex;
+      setSessionAttributes(handlerInput, sessionAttributes);
+      
+      const speechText = `Headline ${headlineNumber}: ${selectedHeadline.title}. ${selectedHeadline.content}`;
+      
+      return handlerInput.responseBuilder
+        .speak(speechText)
+        .withSimpleCard(`Auto News: ${selectedHeadline.title}`, speechText)
+        .getResponse();
+    } catch (error) {
+      console.error('Error in GetNewsDetailIntentHandler:', error);
+      const speechText = 'Sorry, I had trouble getting the news details. Please try again later.';
+      
+      return handlerInput.responseBuilder
+        .speak(speechText)
+        .getResponse();
+    }
+  }
+};
+
+// Update the existing GetNewsIntentHandler
 const GetNewsIntentHandler = {
   canHandle(handlerInput) {
     return (Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -200,6 +324,13 @@ const GetNewsIntentHandler = {
         const conversationHistory = sessionAttributes[SESSION_KEYS.CONVERSATION_HISTORY] || [];
         conversationHistory.push({ role: 'user', content: userInput });
         sessionAttributes[SESSION_KEYS.CONVERSATION_HISTORY] = conversationHistory;
+      }
+      
+      // If user is trying to get detail about a headline, pass to detail handler
+      if (state === STATES.DELIVERING_HEADLINES && 
+          (userInput.toLowerCase().includes('headline') || userInput.match(/\d+/))) {
+        const detailHandler = GetNewsDetailIntentHandler.handle(handlerInput);
+        if (detailHandler) return detailHandler;
       }
       
       let speechText = '';
@@ -236,27 +367,33 @@ const GetNewsIntentHandler = {
         }
       }
       
-      // Fetch news - first try admin panel API
+      // Fetch headlines - first try admin panel API
       const country = sessionAttributes[SESSION_KEYS.COUNTRY];
-      const adminNews = await fetchNewsFromAdmin(country);
+      const headlines = await fetchHeadlinesFromAdmin(country);
       
-      if (adminNews) {
-        // Use news from admin panel
-        speechText = formatAdminNewsForSpeech(adminNews, country);
+      if (headlines) {
+        // Save headlines to session for later reference
+        sessionAttributes[SESSION_KEYS.NEWS_HEADLINES] = headlines;
+        sessionAttributes[SESSION_KEYS.STATE] = STATES.DELIVERING_HEADLINES;
+        setSessionAttributes(handlerInput, sessionAttributes);
+        
+        // Format headlines for speech
+        speechText = formatHeadlinesForSpeech(headlines, country);
       }
       
-      // If no admin news, fallback to OpenAI
+      // If no headlines from admin panel, fallback to OpenAI
       if (!speechText) {
         const openAINews = await searchNewsWithOpenAI(country);
         speechText = formatNewsForSpeech(openAINews, country);
+        
+        // Update state
+        sessionAttributes[SESSION_KEYS.STATE] = STATES.DELIVERING_NEWS;
+        setSessionAttributes(handlerInput, sessionAttributes);
       }
-      
-      // Update state and save to session
-      sessionAttributes[SESSION_KEYS.STATE] = STATES.DELIVERING_NEWS;
-      setSessionAttributes(handlerInput, sessionAttributes);
       
       return handlerInput.responseBuilder
         .speak(speechText)
+        .reprompt("You can ask for details about a specific headline by saying its number.")
         .withSimpleCard(`Auto News from ${country}`, speechText)
         .getResponse();
     } catch (error) {
@@ -363,6 +500,7 @@ exports.handler = Alexa.SkillBuilderStandard.create()
   .addRequestHandlers(
     LaunchRequestHandler,
     GetNewsIntentHandler,
+    GetNewsDetailIntentHandler,
     GetLatestNewsIntentHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler
